@@ -2,8 +2,7 @@ FROM richarvey/nginx-php-fpm:3.1.6
 
 COPY . /var/www/html
 
-# Image-ի հիմնական կարգավորումները (Միացնում ենք Composer-ը)
-ENV NOW_COMPOSER 1
+# Image-ի հիմնական կարգավորումները
 ENV WEBROOT /var/www/html/public
 ENV PHP_ERRORS_STDERR 1
 ENV RUN_SCRIPTS 1
@@ -16,8 +15,8 @@ ENV LOG_CHANNEL stderr
 ENV APP_ENV production
 ENV APP_DEBUG true
 
-# Տեղադրում ենք Laravel-ի բոլոր պակասող փաթեթները (vendor թղթապանակը)
-RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+# ՈՒՂՂՎԱԾ Է. Ավելացրել ենք --no-scripts դրոշակը՝ build-ի ժամանակ սխալները կանխելու համար
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
 
 # Թույլտվություններ թղթապանակների համար
 RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
