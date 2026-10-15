@@ -2,14 +2,25 @@ FROM richarvey/nginx-php-fpm:3.1.6
 
 COPY . /var/www/html
 
-# Պորտային միացում սոկետի փոխարեն (Վերացնում է Socket 500 սխալը)
-ENV PHP_FPM_LISTEN 127.0.0.1:9000
+# Image-ի հիմնական կարգավորումները (Միացնում ենք Composer-ը)
+ENV NOW_COMPOSER 1
 ENV WEBROOT /var/www/html/public
-ENV APP_ENV production
-ENV APP_DEBUG false
+ENV PHP_ERRORS_STDERR 1
 ENV RUN_SCRIPTS 1
+ENV REAL_IP_HEADER 1
 
-# Թույլտվություններ
+# Լոգերը ուղղում ենք Docker տերմինալ
+ENV LOG_CHANNEL stderr
+
+# Laravel-ի հիմնական ռեժիմը
+ENV APP_ENV production
+ENV APP_DEBUG true
+
+# Տեղադրում ենք Laravel-ի բոլոր պակասող փաթեթները (vendor թղթապանակը)
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+
+# Թույլտվություններ թղթապանակների համար
 RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 EXPOSE 80
+CMD ["/start.sh"]
