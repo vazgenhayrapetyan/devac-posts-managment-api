@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
-echo "Սկսվում է սերվերի գործարկումը..."
+echo "Սկսվում է տվյալների բազայի ավտոմատ միգրացիան..."
 
-# Քեշավորում ենք կոնֆիգուրացիաները արագության համար
-php artisan config:cache
-php artisan route:cache
+# Ստեղծում ենք SQLite բազան ճիշտ տեղում
+touch database/database.sqlite
+chmod 777 database/database.sqlite
 
-echo "PHP-FPM-ը պատրաստ է աշխատանքի:"
+# Գործարկում ենք հրամանները
+php artisan migrate --force
+php artisan db:seed --force
+
+echo "Բեքենդը պատրաստ է:"
