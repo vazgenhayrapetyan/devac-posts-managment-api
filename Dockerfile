@@ -7,6 +7,6 @@ ENV APP_ENV production
 ENV APP_DEBUG false
 ENV RUN_SCRIPTS 1
 
-RUN chown -R nw:nw /var/www/html/storage /var/www/html/bootstrap/cache
+RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 EXPOSE 80
