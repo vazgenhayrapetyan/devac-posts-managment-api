@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
+echo "Սկսվում է սերվերի գործարկումը..."
 
-echo "Սկսվում է տվյալների բազայի կարգավորումը օնլայն սերվերում..."
+# Քեշավորում ենք կոնֆիգուրացիաները արագության համար
+php artisan config:cache
+php artisan route:cache
 
-php artisan migrate --force
-
-php artisan db:seed --force
-
-echo "Բոլոր աղյուսակներն ու օգտատերերը հաջողությամբ ստեղծվեցին:"
+echo "PHP-FPM-ը պատրաստ է աշխատանքի:"
