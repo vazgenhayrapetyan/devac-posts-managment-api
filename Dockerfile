@@ -9,6 +9,4 @@ ENV RUN_SCRIPTS 1
 
 RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-ENTRYPOINT ["/bin/sh", "-c", "php artisan migrate --force && php artisan db:seed --force && /entrypoint.sh"]
-
 EXPOSE 80
