@@ -1,13 +1,17 @@
-FROM richarvey/nginx-php-fpm:3.1.6
+FROM php:8.2-cli
 
-COPY . /var/www/html
+# Տեղադրում ենք անհրաժեշտ Linux գործիքները
+RUN apt-get update -y && apt-get install -y openssl zip unzip git libsqlite3-dev
+RUN docker-php-ext-install pdo pdo_sqlite
 
-ENV SKIP_COMPOSER 1
-ENV WEBROOT /var/www/html/public
-ENV PHP_ERRORS_STDERR 1
-ENV RUN_SCRIPTS 1
-ENV REAL_IP_HEADER 1
+# Կոդը տեղափոխում ենք Docker-ի ներս
+COPY . /app
+WORKDIR /app
 
-RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+# Ստեղծում ենք SQLite դատարկ բազա ֆայլի տեսքով, եթե չկա
+RUN touch database/database.sqlite
 
-CMD ["/start.sh"]
+# Գործարկում ենք Laravel-ի ներկառուցված սերվերը ուղիղ 80 պորտով
+CMD php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=80
+
+EXPOSE 80
