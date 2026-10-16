@@ -30,7 +30,7 @@ RUN mkdir -p /home/$user/.composer && \
 WORKDIR /var/www
 
 # If you need to fix ssl
-COPY ./openssl.cnf /etc/ssl/openssl.cnf
+COPY ./docker/openssl.cnf /etc/ssl/openssl.cnf
 
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --optimize-autoloader --no-scripts
@@ -40,7 +40,8 @@ COPY . .
 RUN chown -R $uid:$uid /var/www
 
 # copy supervisor configuration
-COPY ./supervisord.conf /etc/supervisord.conf
+COPY ./docker/nginx.conf /etc/nginx/nginx.conf
+COPY ./docker/supervisord.conf /etc/supervisord.conf
 
 # run supervisor
 CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisord.conf"]
