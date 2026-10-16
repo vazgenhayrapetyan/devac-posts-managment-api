@@ -1,21 +1,46 @@
-FROM richarvey/nginx-php-fpm:3.1.6
+FROM php:8.2-fpm
+
+ARG user
+ARG uid
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    zip \
+    unzip \
+    supervisor \
+    nginx \
+    build-essential \
+    openssl
+
+RUN docker-php-ext-install gd pdo pdo_mysql sockets
+
+# Get latest Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Create system user to run Composer and Artisan Commands
+RUN useradd -G www-data,root -u $uid -d /home/$user $user
+RUN mkdir -p /home/$user/.composer && \
+    chown -R $user:$user /home/$user
+
+WORKDIR /var/www
+
+# If you need to fix ssl
+COPY ./openssl.cnf /etc/ssl/openssl.cnf
+
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --optimize-autoloader --no-scripts
 
 COPY . .
 
-# Image config
-ENV SKIP_COMPOSER 1
-ENV WEBROOT /var/www/html/public
-ENV PHP_ERRORS_STDERR 1
-ENV RUN_SCRIPTS 1
-ENV REAL_IP_HEADER 1
+RUN chown -R $uid:$uid /var/www
 
-# Laravel config
-ENV APP_ENV production
-ENV APP_DEBUG false
-ENV LOG_CHANNEL stderr
+# copy supervisor configuration
+COPY ./supervisord.conf /etc/supervisord.conf
 
-# Allow composer to run as root
-ENV COMPOSER_ALLOW_SUPERUSER 1
-
-CMD /usr/bin/supervisord -c /etc/supervisord.conf || sleep 3600
-
+# run supervisor
+CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisord.conf"]
