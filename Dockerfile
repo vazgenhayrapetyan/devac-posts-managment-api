@@ -1,47 +1,35 @@
-FROM php:8.2-fpm
+FROM php:8.2-fpm-alpine
 
-ARG user
-ARG uid
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    git \
+# Տեղադրում ենք համակարգային կախվածությունները և MySQL extensions-ը
+RUN apk update && apk add --no-cache \
+    nginx \
+    supervisor \
     curl \
     libpng-dev \
-    libonig-dev \
     libxml2-dev \
     zip \
-    unzip \
-    supervisor \
-    nginx \
-    build-essential \
-    openssl
+    unzip
 
-RUN docker-php-ext-install gd pdo pdo_mysql sockets
+RUN docker-php-ext-install pdo_mysql bcmath
 
-# Get latest Composer
+# Տեղադրում ենք Composer-ը
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Create system user to run Composer and Artisan Commands
-RUN useradd -G www-data,root -u $uid -d /home/$user $user
-RUN mkdir -p /home/$user/.composer && \
-    chown -R $user:$user /home/$user
+WORKDIR /var/www/html
 
-WORKDIR /var/www
-
-# If you need to fix ssl
-COPY ./docker/openssl.cnf /etc/ssl/openssl.cnf
-
-COPY composer.json composer.lock ./
-RUN composer install --no-dev --optimize-autoloader --no-scripts
-
+# Պատճենում ենք պրոեկտի ֆայլերը
 COPY . .
 
-RUN chown -R $uid:$uid /var/www
+# Տեղադրում ենք բոլոր PHP package-ները
+RUN composer install --no-dev --optimize-autoloader --no-scripts
 
-# copy supervisor configuration
+# Կարգավորում ենք թղթապանակների թույլտվությունները ներկառուցված www-data օգտատիրոջ համար
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+
+# Պատճենում ենք սերվերի կոնֆիգուրացիաները
 COPY ./docker/nginx.conf /etc/nginx/nginx.conf
 COPY ./docker/supervisord.conf /etc/supervisord.conf
 
-# run supervisor
-CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisord.conf"]
+EXPOSE 80
+
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
