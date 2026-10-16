@@ -17,4 +17,5 @@ ENV LOG_CHANNEL stderr
 # Allow composer to run as root
 ENV COMPOSER_ALLOW_SUPERUSER 1
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+CMD /usr/bin/supervisord -c /etc/supervisord.conf || sleep 3600
+
