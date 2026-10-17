@@ -1,6 +1,6 @@
 FROM php:8.3-fpm-alpine
 
-# 1. Տեղադրում ենք Nginx և Supervisor, բայց անմիջապես ջնջում ենք իրենց հետ եկած հին PHP CLI փաթեթները
+# 1. Տեղադրում ենք համակարգային գործիքները
 RUN apk update && apk add --no-cache \
     nginx \
     supervisor \
@@ -10,14 +10,14 @@ RUN apk update && apk add --no-cache \
     libzip-dev \
     zip \
     unzip \
-    git \
-    && rm -rf /usr/bin/php* /usr/sbin/php*
+    git
 
-# 2. Տեղադրում ենք PHP extensions-ը, որոնք պարտադիր են Laravel-ի MySQL-ի և Zip-ի համար
+# 2. Տեղադրում ենք PHP extensions-ը
 RUN docker-php-ext-install pdo_mysql bcmath zip
 
-# 3. Ստեղծում ենք ուղիղ հղում (Symlink), որ համակարգը միշտ օգտագործի միայն PHP 8.3-ը
-RUN ln -sf /usr/local/bin/php /usr/bin/php
+# 3. ՈՉՆՉԱՑՆՈՒՄ ԵՆՔ ՀԱՄԱԿԱՐԳԱՅԻՆ ՀԻՆ PHP CLI-Ն ԵՎ ՍՏԵՂԾՈՒՄ ՃԻՇՏ ՀՂՈՒՄ
+RUN rm -rf /usr/bin/php* /usr/sbin/php* && \
+    ln -sf /usr/local/bin/php /usr/bin/php
 
 # 4. Տեղադրում ենք Composer-ը
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -28,13 +28,13 @@ ENV COMPOSER_ALLOW_SUPERUSER=1
 # 5. Պատճենում ենք պրոեկտի ֆայլերը
 COPY . .
 
-# 6. Տեղադրում ենք Laravel package-ները
+# 6. Տեղադրում ենք package-ները
 RUN composer install --no-dev --optimize-autoloader --no-scripts --ignore-platform-reqs --no-interaction
 
-# 7. Տրամադրում ենք թույլտվություններ storage-ին
+# 7. Տրամադրում ենք թույլտվություններ
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# 8. Ստեղծում ենք Nginx կոնֆիգուրացիան ուղիղ Docker-ի ներսում (LF ձևաչափով)
+# 8. Ստեղծում ենք Nginx կոնֆիգը
 RUN echo 'user www-data;' > /etc/nginx/nginx.conf && \
     echo 'worker_processes auto;' >> /etc/nginx/nginx.conf && \
     echo 'pid /run/nginx.pid;' >> /etc/nginx/nginx.conf && \
@@ -58,11 +58,11 @@ RUN echo 'user www-data;' > /etc/nginx/nginx.conf && \
     echo '    }' >> /etc/nginx/nginx.conf && \
     echo '}' >> /etc/nginx/nginx.conf
 
-# 9. Ստեղծում ենք Supervisor կոնֆիգուրացիան ուղիղ Docker-ի ներսում
+# 9. ՍՏԵՂԾՈՒՄ ԵՆՔ SUPERVISOR ԿՈՆՖԻԳԸ՝ ՍՏԻՊՈՂԱԲԱՐ ԿԱՆՉԵԼՈՎ ՊԱՇՏՈՆԱԿԱՆ PHP-FPM 8.3-Ը
 RUN echo '[supervisord]' > /etc/supervisord.conf && \
     echo 'nodaemon=true' >> /etc/supervisord.conf && \
     echo '[program:php-fpm]' >> /etc/supervisord.conf && \
-    echo 'command=php-fpm' >> /etc/supervisord.conf && \
+    echo 'command=/usr/local/sbin/php-fpm' >> /etc/supervisord.conf && \
     echo '[program:nginx]' >> /etc/supervisord.conf && \
     echo 'command=nginx -g "daemon off;"' >> /etc/supervisord.conf
 
