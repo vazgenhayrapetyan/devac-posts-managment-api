@@ -1,35 +1,22 @@
-FROM php:8.2-fpm-alpine
+# syntax=docker/dockerfile:1.4
 
-# Տեղադրում ենք համակարգային կախվածությունները և MySQL extensions-ը
-RUN apk update && apk add --no-cache \
-    nginx \
-    supervisor \
-    curl \
-    libpng-dev \
-    libxml2-dev \
-    zip \
-    unzip
+FROM --platform=$BUILDPLATFORM php:8.0.9-apache as builder
 
-RUN docker-php-ext-install pdo_mysql bcmath
+CMD ["apache2-foreground"]
 
-# Տեղադրում ենք Composer-ը
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+FROM builder as dev-envs
 
-WORKDIR /var/www/html
+RUN <<EOF
+apt-get update
+apt-get install -y --no-install-recommends git
+EOF
 
-# Պատճենում ենք պրոեկտի ֆայլերը
-COPY . .
+RUN <<EOF
+useradd -s /bin/bash -m vscode
+groupadd docker
+usermod -aG docker vscode
+EOF
+# install Docker tools (cli, buildx, compose)
+COPY --from=gloursdocker/docker / /
 
-# Տեղադրում ենք բոլոր PHP package-ները
-RUN composer install --no-dev --optimize-autoloader --no-scripts
-
-# Կարգավորում ենք թղթապանակների թույլտվությունները ներկառուցված www-data օգտատիրոջ համար
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-
-# Պատճենում ենք սերվերի կոնֆիգուրացիաները
-COPY ./docker/nginx.conf /etc/nginx/nginx.conf
-COPY ./docker/supervisord.conf /etc/supervisord.conf
-
-EXPOSE 80
-
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+CMD ["apache2-foreground"]
