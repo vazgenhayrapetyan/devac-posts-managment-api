@@ -37,4 +37,5 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 EXPOSE 80
 
 # 10. Միացնում ենք Supervisor-ը, որն իր հերթին կաշխատեցնի Nginx-ը և PHP-ն
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+CMD /usr/bin/supervisord -c /etc/supervisord.conf || sleep 3600
+
