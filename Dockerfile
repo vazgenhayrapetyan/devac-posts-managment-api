@@ -1,7 +1,7 @@
-FROM php:8.3-fpm-bullseye
+FROM php:8.3-fpm-alpine
 
-# 1. Տեղադրում ենք համակարգային գործիքները Debian-ի համար
-RUN apt-get update && apt-get install -y \
+# 1. Տեղադրում ենք Nginx և Supervisor, բայց անմիջապես ջնջում ենք իրենց հետ եկած հին PHP CLI փաթեթները
+RUN apk update && apk add --no-cache \
     nginx \
     supervisor \
     curl \
@@ -11,27 +11,30 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     git \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /usr/bin/php* /usr/sbin/php*
 
-# 2. Տեղադրում ենք PHP extensions-ը
+# 2. Տեղադրում ենք PHP extensions-ը, որոնք պարտադիր են Laravel-ի MySQL-ի և Zip-ի համար
 RUN docker-php-ext-install pdo_mysql bcmath zip
 
-# 3. Տեղադրում ենք Composer-ը
+# 3. Ստեղծում ենք ուղիղ հղում (Symlink), որ համակարգը միշտ օգտագործի միայն PHP 8.3-ը
+RUN ln -sf /usr/local/bin/php /usr/bin/php
+
+# 4. Տեղադրում ենք Composer-ը
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
-# 4. Պատճենում ենք պրոեկտի ֆայլերը
+# 5. Պատճենում ենք պրոեկտի ֆայլերը
 COPY . .
 
-# 5. Տեղադրում ենք Laravel package-ները
+# 6. Տեղադրում ենք Laravel package-ները
 RUN composer install --no-dev --optimize-autoloader --no-scripts --ignore-platform-reqs --no-interaction
 
-# 6. Տրամադրում ենք թույլտվություններ
+# 7. Տրամադրում ենք թույլտվություններ storage-ին
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# 7. Ստեղծում ենք Nginx կոնֆիգուրացիան
+# 8. Ստեղծում ենք Nginx կոնֆիգուրացիան ուղիղ Docker-ի ներսում (LF ձևաչափով)
 RUN echo 'user www-data;' > /etc/nginx/nginx.conf && \
     echo 'worker_processes auto;' >> /etc/nginx/nginx.conf && \
     echo 'pid /run/nginx.pid;' >> /etc/nginx/nginx.conf && \
@@ -55,14 +58,14 @@ RUN echo 'user www-data;' > /etc/nginx/nginx.conf && \
     echo '    }' >> /etc/nginx/nginx.conf && \
     echo '}' >> /etc/nginx/nginx.conf
 
-# 8. Ստեղծում ենք Supervisor կոնֆիգուրացիան (Debian-ում Nginx-ի հասցեն /usr/sbin/nginx է)
-RUN echo '[supervisord]' > /etc/supervisor/conf.d/supervisord.conf && \
-    echo 'nodaemon=true' >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo '[program:php-fpm]' >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo 'command=php-fpm' >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo '[program:nginx]' >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo 'command=/usr/sbin/nginx -g "daemon off;"' >> /etc/supervisor/conf.d/supervisord.conf
+# 9. Ստեղծում ենք Supervisor կոնֆիգուրացիան ուղիղ Docker-ի ներսում
+RUN echo '[supervisord]' > /etc/supervisord.conf && \
+    echo 'nodaemon=true' >> /etc/supervisord.conf && \
+    echo '[program:php-fpm]' >> /etc/supervisord.conf && \
+    echo 'command=php-fpm' >> /etc/supervisord.conf && \
+    echo '[program:nginx]' >> /etc/supervisord.conf && \
+    echo 'command=nginx -g "daemon off;"' >> /etc/supervisord.conf
 
 EXPOSE 80
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
