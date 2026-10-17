@@ -1,16 +1,40 @@
 FROM php:8.2-fpm-alpine
 
-# Տեղադրում ենք Nginx և Supervisor
-RUN apk update && apk add --no-cache nginx supervisor
+# 1. Տեղադրում ենք համակարգային բոլոր անհրաժեշտ գործիքները (ներառյալ git և zip)
+RUN apk update && apk add --no-cache \
+    nginx \
+    supervisor \
+    curl \
+    libpng-dev \
+    libxml2-dev \
+    libzip-dev \
+    zip \
+    unzip \
+    git
 
-# Ստեղծում ենք պարզ Test էջ, որը ցույց կտա, որ սերվերը Live է
-RUN mkdir -p /var/www/html/public && \
-    echo "<?php echo '<h1>Render Server is 100% Working! Local time: ' . date('Y-m-d H:i:s') . '</h1>'; ?>" > /var/www/html/public/index.php
+# 2. Տեղադրում ենք PHP extensions-ը, որոնք պարտադիր են Laravel-ի MySQL-ի և Zip-ի համար
+RUN docker-php-ext-install pdo_mysql bcmath zip
 
-# Պատճենում ենք սերվերի կոնֆիգուրացիաները
-COPY ./docker/nginx.conf /etc/nginx/nginx.conf
-COPY ./docker/supervisord.conf /etc/supervisord.conf
+# 3. Տեղադրում ենք Composer-ի ամենավերջին տարբերակը
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# 4. Սահմանում ենք հիմնական աշխատանքային թղթապանակը
+WORKDIR /var/www/html
+
+# 5. Թույլատրում ենք Composer-ին աշխատել root իրավունքներով Docker-ի ներսում
+ENV COMPOSER_ALLOW_SUPERUSER=1
+
+# 6. Պատճենում ենք ձեր GitHub ռեպոզիտորիայի բոլոր իրական ֆայլերը սերվեր
+COPY . .
+
+# 7. Տեղադրում ենք Laravel-ի package-ները՝ շրջանցելով հարթակի պահանջների (extension) խնդիրները
+RUN composer install --no-dev --optimize-autoloader --no-scripts --ignore-platform-reqs --no-interaction
+
+# 8. Տրամադրում ենք ճիշտ թույլտվություններ storage-ին, որպեսզի սպիտակ էջի սխալ չլինի
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+
+# 9. Բացում ենք 80 պորտը վեբ տրաֆիկի համար
 EXPOSE 80
 
+# 10. Միացնում ենք Supervisor-ը, որն իր հերթին կաշխատեցնի Nginx-ը և PHP-ն
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
