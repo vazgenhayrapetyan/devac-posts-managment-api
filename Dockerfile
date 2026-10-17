@@ -73,5 +73,5 @@ RUN echo '[supervisord]' > /etc/supervisord.conf && \
 
 EXPOSE 80
 
-CMD php artisan migrate --force && php artisan db:seed --class=UserSeeder --force && /usr/bin/supervisord -c /etc/supervisord.conf
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
 
