@@ -29,8 +29,8 @@ ENV COMPOSER_ALLOW_SUPERUSER=1
 COPY . .
 
 # 6. Տեղադրում ենք package-ները
-# RUN composer install --no-dev --optimize-autoloader --no-scripts --ignore-platform-reqs --no-interaction
-RUN composer update --no-dev --optimize-autoloader --no-scripts --ignore-platform-reqs --no-interaction
+RUN composer install --no-dev --optimize-autoloader --no-scripts --ignore-platform-reqs --no-interaction
+# RUN composer update --no-dev --optimize-autoloader --no-scripts --ignore-platform-reqs --no-interaction
 
 # 7. Տրամադրում ենք թույլտվություններ storage-ին
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
