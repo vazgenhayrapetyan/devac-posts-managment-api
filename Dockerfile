@@ -1,7 +1,7 @@
-FROM php:8.3-fpm-alpine
+FROM php:8.3-fpm-bullseye
 
-# 1. Տեղադրում ենք Nginx, Supervisor և անհրաժեշտ գործիքները
-RUN apk update && apk add --no-cache \
+# 1. Տեղադրում ենք համակարգային գործիքները Debian-ի համար
+RUN apt-get update && apt-get install -y \
     nginx \
     supervisor \
     curl \
@@ -10,7 +10,8 @@ RUN apk update && apk add --no-cache \
     libzip-dev \
     zip \
     unzip \
-    git
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
 # 2. Տեղադրում ենք PHP extensions-ը
 RUN docker-php-ext-install pdo_mysql bcmath zip
@@ -30,7 +31,7 @@ RUN composer install --no-dev --optimize-autoloader --no-scripts --ignore-platfo
 # 6. Տրամադրում ենք թույլտվություններ
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# 7. ՍՏԵՂԾՈՒՄ ԵՆՔ NGINX ԿՈՆՖԻԳԸ ՈՒՂԻՂ DOCKER-Ի ՆԵՐՍՈՒՄ (Շրջանցում ենք Windows-ի CRLF սխալը)
+# 7. Ստեղծում ենք Nginx կոնֆիգուրացիան
 RUN echo 'user www-data;' > /etc/nginx/nginx.conf && \
     echo 'worker_processes auto;' >> /etc/nginx/nginx.conf && \
     echo 'pid /run/nginx.pid;' >> /etc/nginx/nginx.conf && \
@@ -54,14 +55,14 @@ RUN echo 'user www-data;' > /etc/nginx/nginx.conf && \
     echo '    }' >> /etc/nginx/nginx.conf && \
     echo '}' >> /etc/nginx/nginx.conf
 
-# 8. ՍՏԵՂԾՈՒՄ ԵՆՔ SUPERVISOR ԿՈՆՖԻԳԸ ՈՒՂԻՂ DOCKER-Ի ՆԵՐՍՈՒՄ
-RUN echo '[supervisord]' > /etc/supervisord.conf && \
-    echo 'nodaemon=true' >> /etc/supervisord.conf && \
-    echo '[program:php-fpm]' >> /etc/supervisord.conf && \
-    echo 'command=php-fpm' >> /etc/supervisord.conf && \
-    echo '[program:nginx]' >> /etc/supervisord.conf && \
-    echo 'command=nginx -g "daemon off;"' >> /etc/supervisord.conf
+# 8. Ստեղծում ենք Supervisor կոնֆիգուրացիան (Debian-ում Nginx-ի հասցեն /usr/sbin/nginx է)
+RUN echo '[supervisord]' > /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'nodaemon=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo '[program:php-fpm]' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'command=php-fpm' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo '[program:nginx]' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'command=/usr/sbin/nginx -g "daemon off;"' >> /etc/supervisor/conf.d/supervisord.conf
 
 EXPOSE 80
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
