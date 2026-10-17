@@ -1,4 +1,4 @@
-FROM php:8.2-fpm-alpine
+FROM php:8.3-fpm-alpine
 
 # 1. Տեղադրում ենք Nginx, Supervisor և անհրաժեշտ գործիքները
 RUN apk update && apk add --no-cache \
