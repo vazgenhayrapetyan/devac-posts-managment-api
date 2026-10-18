@@ -6,19 +6,20 @@ use App\Http\Controllers\Controller;
 use App\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests; // Ճիշտ հասցեն
 
 class PostController extends Controller
 {
+    use AuthorizesRequests; // Trait-ը պետք է լինի կլասի ՆԵՐՍՈՒՄ
+
     /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
     {
-        // $this->authorize('viewAny', Post::class);
         Gate::authorize('viewAny', Post::class);
         $query = Post::with('user');
-        // Filter by status if provided
+
         if ($request->has('status') && $request->status !== '') {
             $query->where('status', $request->input('status'));
         }
@@ -27,7 +28,6 @@ class PostController extends Controller
             $query->where('title', 'like', '%' . $request->search . '%');
         }
 
-        // Filter by user_id if provided
         if ($request->has('user_id') && $request->user_id !== '') {
             $query->where('user_id', $request->input('user_id'));
         }
@@ -39,8 +39,7 @@ class PostController extends Controller
         if ($request->has('date_to') && $request->date_to != '') {
             $query->whereDate('created_at', '<=', $request->date_to);
         }
-        // Paginate the results
-        // $posts = $query->paginate(10);
+
         $posts = $query->orderby('created_at', 'desc')->paginate(10);
 
         return response()->json($posts);
@@ -51,10 +50,8 @@ class PostController extends Controller
      */
     public function store(Request $request)
     {
-        // $this->authorize('create', Post::class);
         Gate::authorize('create', Post::class);
         $validated = $request->validate([
-            
             'title' => 'required|string|max:255',
             'content' => 'required|string',
             'status' => 'required|in:draft,published,archived',
@@ -79,11 +76,12 @@ class PostController extends Controller
     public function show(string $id)
     {
         $post = Post::with('user')->find($id);
-        // $this->authorize('view', $post);
-        Gate::authorize('view', $post);
+        
         if (!$post) {
             return response()->json(['message' => 'Post not found'], 404);
         }
+
+        Gate::authorize('view', $post);
 
         return response()->json($post);
     }
@@ -94,11 +92,12 @@ class PostController extends Controller
     public function update(Request $request, string $id)
     {
         $post = Post::find($id);
-        // $this->authorize('update', $post);
-        Gate::authorize('update', $post);
+        
         if (!$post) {
             return response()->json(['message' => 'Post not found'], 404);
         }
+
+        Gate::authorize('update', $post);
 
         $validated = $request->validate([
             'title' => 'sometimes|required|string|max:255',
@@ -120,11 +119,13 @@ class PostController extends Controller
     public function destroy(string $id)
     {
         $post = Post::find($id);
-        // $this->authorize('delete', $post);
-        Gate::authorize('delete', $post);
+        
         if (!$post) {
             return response()->json(['message' => 'Post not found'], 404);
         }
+
+        Gate::authorize('delete', $post);
+        
         $post->delete();
         return response()->json(['message' => 'Post deleted successfully']);
     }
