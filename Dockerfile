@@ -15,7 +15,7 @@ RUN apk update && apk add --no-cache \
 # 2. Տեղադրում ենք PHP extensions-ը Laravel-ի համար
 RUN docker-php-ext-install pdo_mysql bcmath zip
 
-# 3. ՋՆՋՈՒՄ ԵՆՔ ՀԱՄԱԿԱՐԳԱՅԻՆ ՀԻՆ PHP-ՆԵՐԸ ՈՒ ՍՏԵՂԾՈՒՄ ՃԻՇՏ Symlink
+# 3. Ստեղծում ենք ճիշտ Symlink PHP-ի համար
 RUN rm -rf /usr/bin/php* /usr/sbin/php* && \
     ln -sf /usr/local/bin/php /usr/bin/php
 
@@ -25,17 +25,16 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www/html
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
-# 5. ՊԱՏՃԵՆՈՒՄ ԵՆՔ ՊՐՈԵԿՏԻ ՖԱՅԼԵՐԸ (Բացի vendor-ից)
+# 5. Պատճենում ենք պրոեկտի ֆայլերը
 COPY . .
 
 # 6. Տեղադրում ենք package-ները
 RUN composer install --no-dev --optimize-autoloader --no-scripts --ignore-platform-reqs --no-interaction
-# RUN composer update --no-dev --optimize-autoloader --no-scripts --ignore-platform-reqs --no-interaction
 
 # 7. Տրամադրում ենք թույլտվություններ storage-ին
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# 8. Ստեղծում ենք Nginx կոնֆիգուրացիան
+# 8. ՍՏԵՂԾՈՒՄ ԵՆՔ NGINX ԿՈՆՖԻԳԸ՝ ՓՈԽԱՐԻՆԵԼՈՎ 80 ՊՈՐՏԸ RAILWAY-Ի ԴԻՆԱՄԻԿ ՊՈՐՏՈՎ (PORT)
 RUN echo 'user www-data;' > /etc/nginx/nginx.conf && \
     echo 'worker_processes auto;' >> /etc/nginx/nginx.conf && \
     echo 'pid /run/nginx.pid;' >> /etc/nginx/nginx.conf && \
@@ -44,7 +43,7 @@ RUN echo 'user www-data;' > /etc/nginx/nginx.conf && \
     echo '    include /etc/nginx/mime.types;' >> /etc/nginx/nginx.conf && \
     echo '    default_type application/octet-stream;' >> /etc/nginx/nginx.conf && \
     echo '    server {' >> /etc/nginx/nginx.conf && \
-    echo '        listen 80;' >> /etc/nginx/nginx.conf && \
+    echo '        listen 8080;' >> /etc/nginx/nginx.conf && \
     echo '        root /var/www/html/public;' >> /etc/nginx/nginx.conf && \
     echo '        index index.php index.html;' >> /etc/nginx/nginx.conf && \
     echo '        location / {' >> /etc/nginx/nginx.conf && \
@@ -59,7 +58,7 @@ RUN echo 'user www-data;' > /etc/nginx/nginx.conf && \
     echo '    }' >> /etc/nginx/nginx.conf && \
     echo '}' >> /etc/nginx/nginx.conf
 
-# 9. ՍՏԵՂԾՈՒՄ ԵՆՔ SUPERVISOR ԿՈՆՖԻԳԸ՝ ՈՒՂՂԵԼՈՎ USER=ROOT ԽՆԴԻՐԸ
+# 9. Ստեղծում ենք Supervisor կոնֆիգուրացիան
 RUN echo '[supervisord]' > /etc/supervisord.conf && \
     echo 'nodaemon=true' >> /etc/supervisord.conf && \
     echo 'user=root' >> /etc/supervisord.conf && \
@@ -72,7 +71,7 @@ RUN echo '[supervisord]' > /etc/supervisord.conf && \
     echo 'autostart=true' >> /etc/supervisord.conf && \
     echo 'autorestart=true' >> /etc/supervisord.conf
 
-EXPOSE 80
+# Railway-ի համար բացում ենք 8080 պորտը
+EXPOSE 8080
 
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
-
