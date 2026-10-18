@@ -34,7 +34,7 @@ RUN composer install --no-dev --optimize-autoloader --no-scripts --ignore-platfo
 # 7. Տրամադրում ենք թույլտվություններ storage-ին
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# 8. ՍՏԵՂԾՈՒՄ ԵՆՔ NGINX ԿՈՆՖԻԳԸ՝ ՓՈԽԱՐԻՆԵԼՈՎ 80 ՊՈՐՏԸ RAILWAY-Ի ԴԻՆԱՄԻԿ ՊՈՐՏՈՎ (PORT)
+# 8. ՍՏԵՂԾՈՒՄ ԵՆՔ NGINX ԿՈՆՖԻԳԸ՝ ԼՍԵԼՈՎ 80 ՊՈՐՏԸ (Railway Proxy-ն ինքը կկապի սա)
 RUN echo 'user www-data;' > /etc/nginx/nginx.conf && \
     echo 'worker_processes auto;' >> /etc/nginx/nginx.conf && \
     echo 'pid /run/nginx.pid;' >> /etc/nginx/nginx.conf && \
@@ -43,7 +43,7 @@ RUN echo 'user www-data;' > /etc/nginx/nginx.conf && \
     echo '    include /etc/nginx/mime.types;' >> /etc/nginx/nginx.conf && \
     echo '    default_type application/octet-stream;' >> /etc/nginx/nginx.conf && \
     echo '    server {' >> /etc/nginx/nginx.conf && \
-    echo '        listen 8080;' >> /etc/nginx/nginx.conf && \
+    echo '        listen 80;' >> /etc/nginx/nginx.conf && \
     echo '        root /var/www/html/public;' >> /etc/nginx/nginx.conf && \
     echo '        index index.php index.html;' >> /etc/nginx/nginx.conf && \
     echo '        location / {' >> /etc/nginx/nginx.conf && \
@@ -71,7 +71,6 @@ RUN echo '[supervisord]' > /etc/supervisord.conf && \
     echo 'autostart=true' >> /etc/supervisord.conf && \
     echo 'autorestart=true' >> /etc/supervisord.conf
 
-# Railway-ի համար բացում ենք 8080 պորտը
-EXPOSE 8080
+EXPOSE 80
 
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
